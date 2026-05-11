@@ -984,6 +984,22 @@ header {
   </div>
 </div>
 
+<!-- MODALE de sélection d'une leçon à imprimer ×8 -->
+<div class="modal-overlay" id="choose-x8-modal" onclick="closeChooseX8Modal(event)">
+  <div class="modal-content" style="max-width:560px;">
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="margin:0;color:var(--red);font-family:'Baloo 2',cursive;">Choisis la leçon à imprimer ×8</h2>
+      <button class="modal-close" onclick="document.getElementById('choose-x8-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 16px;font-size:14px;color:#6b4a3a;">
+        Tu obtiendras une seule page A4 avec la leçon répétée 8 fois — à découper pour la classe.
+      </p>
+      <div id="choose-x8-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+    </div>
+  </div>
+</div>
+
 
 <header>
   <div class="header-logo">
@@ -994,8 +1010,11 @@ header {
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn-print-all" onclick="openChooseX8()" title="Imprimer une leçon × 8 sur une page A4 (à découper)">
+      🖨️ Une leçon ×8
+    </button>
     <button class="btn-print-all" onclick="printAllTraces()" title="Imprimer toutes les traces écrites — 8 mini-fiches par page A4">
-      🖨️ Imprimer les traces
+      🖨️ Toutes les leçons
     </button>
     <div class="p5-badge">Période 5 · 2026</div>
   </div>
@@ -1926,11 +1945,40 @@ ${pages.map(renderPage).join("\n")}
   }, 400);
 }
 
-// Imprimer la trace courante × 8 sur une seule page A4 (à découper pour la classe)
-function printTraceX8() {
-  const sIdx = parseInt(document.querySelector('[data-current-semaine]')?.dataset?.currentSemaine ?? currentSIdx);
+// Ouvrir la modale de sélection d'une leçon pour impression ×8
+function openChooseX8() {
+  const grid = document.getElementById('choose-x8-grid');
+  grid.innerHTML = SEMAINES.map((s, i) => `
+    <button onclick="printTraceX8(${i})"
+      style="text-align:left;padding:14px 16px;border-radius:14px;border:1.5px solid #ffd4cc;background:#fff6f3;cursor:pointer;font-family:'Baloo 2',cursive;transition:all 0.15s;display:flex;align-items:center;gap:10px;"
+      onmouseover="this.style.background='#ffe8e0';this.style.borderColor='#e8321a';"
+      onmouseout="this.style.background='#fff6f3';this.style.borderColor='#ffd4cc';">
+      <span style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#e8321a;color:white;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;">${i + 1}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:800;color:#b32612;line-height:1.2;">${s.regel}</div>
+        <div style="font-size:11px;color:#8a6a5a;margin-top:2px;">${DATES_LUNDI[i] || ''}</div>
+      </div>
+      <span style="color:#e8321a;font-size:18px;">🖨️</span>
+    </button>
+  `).join('');
+  document.getElementById('choose-x8-modal').classList.add('open');
+}
+function closeChooseX8Modal(e) {
+  if (e.target === document.getElementById('choose-x8-modal')) {
+    document.getElementById('choose-x8-modal').classList.remove('open');
+  }
+}
+
+// Imprimer une leçon × 8 sur une seule page A4 (à découper pour la classe)
+// Si sIdx omis → utilise la semaine courante (depuis la modale trace)
+function printTraceX8(sIdx) {
+  if (sIdx === undefined || sIdx === null) {
+    sIdx = parseInt(document.querySelector('[data-current-semaine]')?.dataset?.currentSemaine ?? currentSIdx);
+  }
   const s = SEMAINES[sIdx];
   if (!s) return;
+  // Fermer la modale de sélection si ouverte
+  document.getElementById('choose-x8-modal')?.classList.remove('open');
   const fiche = {
     num: sIdx + 1,
     titre: s.regel,
