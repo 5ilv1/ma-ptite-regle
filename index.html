@@ -1908,24 +1908,21 @@ function printAllTraces() {
   .fiche-exemple-txt { font-style: italic; color: #4a3a2a; }
 </style></head><body>
 ${pages.map(renderPage).join("\n")}
-<script>window.onload=()=>setTimeout(()=>window.print(),400);</script>
 </body></html>`;
 
-  // Blob URL = compatible iPad/Safari/Chrome, évite le 404 de window.open() vide
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
-  if (!win) {
-    // Popup bloqué → fallback : télécharger le HTML
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Ma-Ptite-Regle-Traces-Periode-5.html";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-  // Libérer le blob après quelques secondes (le temps que la nouvelle fenêtre charge)
-  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  // iframe invisible dans la page actuelle — zéro popup, zéro 404, zéro CSP
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;width:0;height:0;border:none;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => {
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 1500);
+  }, 400);
 }
 
 function printTrace() {
