@@ -1908,13 +1908,24 @@ function printAllTraces() {
   .fiche-exemple-txt { font-style: italic; color: #4a3a2a; }
 </style></head><body>
 ${pages.map(renderPage).join("\n")}
-<script>window.onload=()=>setTimeout(()=>window.print(),300);</script>
+<script>window.onload=()=>setTimeout(()=>window.print(),400);</script>
 </body></html>`;
 
-  const win = window.open();
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  // Blob URL = compatible iPad/Safari/Chrome, évite le 404 de window.open() vide
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (!win) {
+    // Popup bloqué → fallback : télécharger le HTML
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Ma-Ptite-Regle-Traces-Periode-5.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  // Libérer le blob après quelques secondes (le temps que la nouvelle fenêtre charge)
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 function printTrace() {
