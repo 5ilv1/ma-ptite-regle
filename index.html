@@ -969,7 +969,8 @@ header {
       <div class="modal-regle-box" id="modal-regle"></div>
       <div class="modal-ex-label">Exemple</div>
       <div class="modal-ex-box" id="modal-exemple"></div>
-      <div style="margin-top:18px; display:flex; justify-content:flex-end;">
+      <div style="margin-top:18px; display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+        <button class="btn-print" onclick="printTraceX8()" title="8 mini-fiches identiques sur une seule page A4 — à découper pour la classe">🖨️ Imprimer ×8 (1 page)</button>
         <button class="btn-print" onclick="printTrace()">🖨️ Imprimer la trace écrite</button>
       </div>
     </div>
@@ -1923,6 +1924,143 @@ ${pages.map(renderPage).join("\n")}
     iframe.contentWindow.print();
     setTimeout(() => document.body.removeChild(iframe), 1500);
   }, 400);
+}
+
+// Imprimer la trace courante × 8 sur une seule page A4 (à découper pour la classe)
+function printTraceX8() {
+  const sIdx = parseInt(document.querySelector('[data-current-semaine]')?.dataset?.currentSemaine ?? currentSIdx);
+  const s = SEMAINES[sIdx];
+  if (!s) return;
+  const fiche = {
+    num: sIdx + 1,
+    titre: s.regel,
+    date: DATES_LUNDI[sIdx] || "",
+    regle: s.vendredi?.regle || "",
+    exemple: s.vendredi?.exemple || "",
+  };
+
+  const renderFiche = () => `
+    <div class="fiche">
+      <div class="fiche-header">
+        <span class="fiche-num">${fiche.num}</span>
+        <div class="fiche-titre-bloc">
+          <div class="fiche-titre">${fiche.titre}</div>
+          ${fiche.date ? `<div class="fiche-date">${fiche.date}</div>` : ""}
+        </div>
+      </div>
+      <div class="fiche-section">
+        <div class="fiche-label">La règle</div>
+        <div class="fiche-texte">${fiche.regle}</div>
+      </div>
+      ${fiche.exemple ? `
+      <div class="fiche-section fiche-exemple">
+        <div class="fiche-label">Exemple</div>
+        <div class="fiche-texte fiche-exemple-txt">${fiche.exemple}</div>
+      </div>` : ""}
+    </div>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Ma P'tite Règle — ${fiche.titre} ×8</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @page { size: A4 portrait; margin: 8mm; }
+  body {
+    font-family: 'Baloo 2', -apple-system, "Plus Jakarta Sans", BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #2a2014;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    height: 281mm;
+    display: flex;
+    flex-direction: column;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 4mm;
+    margin-bottom: 4mm;
+    border-bottom: 2px solid #e8321a;
+  }
+  .page-titre { font-size: 12pt; font-weight: 800; color: #e8321a; }
+  .page-info { font-size: 9pt; color: #8a6a5a; }
+  .grille {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 4mm;
+    flex: 1;
+  }
+  .fiche {
+    border: 1.5px solid #ffd4cc;
+    border-radius: 4mm;
+    padding: 3mm 3.5mm;
+    background: #fff6f3;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  .fiche-header {
+    display: flex;
+    align-items: center;
+    gap: 2.5mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 1px dashed #ffb8a8;
+  }
+  .fiche-num {
+    flex-shrink: 0;
+    width: 7mm; height: 7mm;
+    border-radius: 50%;
+    background: #e8321a; color: white;
+    font-weight: 800; font-size: 10pt;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fiche-titre-bloc { flex: 1; min-width: 0; }
+  .fiche-titre {
+    font-size: 11pt; font-weight: 800; color: #b32612;
+    line-height: 1.15; letter-spacing: -0.01em;
+  }
+  .fiche-date { font-size: 8pt; color: #8a6a5a; margin-top: 0.5mm; }
+  .fiche-section { display: flex; flex-direction: column; gap: 0.5mm; }
+  .fiche-label {
+    font-size: 7.5pt; font-weight: 800; color: #e8321a;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .fiche-texte { font-size: 9pt; line-height: 1.35; color: #2a2014; }
+  .fiche-texte .rule-key, .fiche-texte strong {
+    background: #ffe8e0; color: #b32612; font-weight: 800;
+    padding: 0 3px; border-radius: 3px;
+  }
+  .fiche-texte u { text-decoration: underline; text-decoration-color: #e8321a; }
+  .fiche-exemple-txt { font-style: italic; color: #4a3a2a; }
+</style></head><body>
+<div class="page">
+  <header class="page-header">
+    <div class="page-titre">Ma P'tite Règle — ${fiche.titre}</div>
+    <div class="page-info">×8 à découper</div>
+  </header>
+  <div class="grille">
+    ${Array(8).fill(0).map(() => renderFiche()).join("\n")}
+  </div>
+</div>
+</body></html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;width:0;height:0;border:none;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => {
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 1500);
+  }, 400);
+  document.getElementById('trace-modal').classList.remove('open');
 }
 
 function printTrace() {
