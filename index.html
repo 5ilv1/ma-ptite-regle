@@ -88,6 +88,34 @@ header {
   letter-spacing: 0.5px;
   box-shadow: 0 3px 10px rgba(232,50,26,0.3);
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-print-all {
+  background: #fff;
+  color: var(--red);
+  border: 2px solid var(--red);
+  font-family: 'Baloo 2', cursive;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 5px 14px;
+  border-radius: 30px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: all 0.15s ease;
+}
+.btn-print-all:hover {
+  background: var(--red);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232,50,26,0.25);
+}
+@media (max-width: 740px) {
+  .btn-print-all { font-size: 11px; padding: 4px 10px; }
+  .header-actions { gap: 6px; }
+}
 
 /* ── LAYOUT ── */
 .app {
@@ -964,7 +992,12 @@ header {
       <small>Rituel quotidien · Français</small>
     </div>
   </div>
-  <div class="p5-badge">Période 5 · 2026</div>
+  <div class="header-actions">
+    <button class="btn-print-all" onclick="printAllTraces()" title="Imprimer toutes les traces écrites — 8 mini-fiches par page A4">
+      🖨️ Imprimer les traces
+    </button>
+    <div class="p5-badge">Période 5 · 2026</div>
+  </div>
 </header>
 
 <div class="app">
@@ -1741,6 +1774,148 @@ function mobileGo() {
 // Init au chargement
 updateMobileJours();
 
+
+// Dates de découverte (lundi) pour chaque semaine — alignées sur le calendrier P5
+const DATES_LUNDI = [
+  "20 avr.", "27 avr.", "4 mai", "11 mai", "18 mai",
+  "26 mai", "1ᵉʳ juin", "8 juin", "15 juin",
+];
+
+// Génère une page HTML avec TOUTES les traces écrites — 8 mini-fiches par page A4
+function printAllTraces() {
+  const fiches = SEMAINES.map((s, i) => ({
+    num: i + 1,
+    titre: s.regel,
+    date: DATES_LUNDI[i] || "",
+    regle: s.vendredi?.regle || "",
+    exemple: s.vendredi?.exemple || "",
+  }));
+
+  const renderFiche = (f) => `
+    <div class="fiche">
+      <div class="fiche-header">
+        <span class="fiche-num">${f.num}</span>
+        <div class="fiche-titre-bloc">
+          <div class="fiche-titre">${f.titre}</div>
+          ${f.date ? `<div class="fiche-date">${f.date}</div>` : ""}
+        </div>
+      </div>
+      <div class="fiche-section">
+        <div class="fiche-label">La règle</div>
+        <div class="fiche-texte">${f.regle}</div>
+      </div>
+      ${f.exemple ? `
+      <div class="fiche-section fiche-exemple">
+        <div class="fiche-label">Exemple</div>
+        <div class="fiche-texte fiche-exemple-txt">${f.exemple}</div>
+      </div>` : ""}
+    </div>`;
+
+  // Découper en pages de 8
+  const pages = [];
+  for (let i = 0; i < fiches.length; i += 8) pages.push(fiches.slice(i, i + 8));
+
+  const renderPage = (page, pageIdx) => `
+    <div class="page">
+      <header class="page-header">
+        <div class="page-titre">Ma P'tite Règle — Traces écrites — Période 5</div>
+        <div class="page-pagination">Page ${pageIdx + 1} / ${pages.length}</div>
+      </header>
+      <div class="grille">
+        ${page.map(renderFiche).join("\n")}
+      </div>
+    </div>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>Ma P'tite Règle — Traces écrites — Période 5</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @page { size: A4 portrait; margin: 8mm; }
+  body {
+    font-family: 'Baloo 2', -apple-system, "Plus Jakarta Sans", BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #2a2014;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    page-break-after: always;
+    break-inside: avoid;
+    height: 281mm;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-child { page-break-after: avoid; }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 4mm;
+    margin-bottom: 4mm;
+    border-bottom: 2px solid #e8321a;
+  }
+  .page-titre { font-size: 12pt; font-weight: 800; color: #e8321a; letter-spacing: -0.01em; }
+  .page-pagination { font-size: 9pt; color: #8a6a5a; }
+  .grille {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 4mm;
+    flex: 1;
+  }
+  .fiche {
+    border: 1.5px solid #ffd4cc;
+    border-radius: 4mm;
+    padding: 3mm 3.5mm;
+    background: #fff6f3;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  .fiche-header {
+    display: flex;
+    align-items: center;
+    gap: 2.5mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 1px dashed #ffb8a8;
+  }
+  .fiche-num {
+    flex-shrink: 0;
+    width: 7mm; height: 7mm;
+    border-radius: 50%;
+    background: #e8321a; color: white;
+    font-weight: 800; font-size: 10pt;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fiche-titre-bloc { flex: 1; min-width: 0; }
+  .fiche-titre {
+    font-size: 11pt; font-weight: 800; color: #b32612;
+    line-height: 1.15; letter-spacing: -0.01em;
+  }
+  .fiche-date { font-size: 8pt; color: #8a6a5a; margin-top: 0.5mm; }
+  .fiche-section { display: flex; flex-direction: column; gap: 0.5mm; }
+  .fiche-label {
+    font-size: 7.5pt; font-weight: 800; color: #e8321a;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .fiche-texte { font-size: 9pt; line-height: 1.35; color: #2a2014; }
+  .fiche-texte .rule-key, .fiche-texte strong {
+    background: #ffe8e0; color: #b32612; font-weight: 800;
+    padding: 0 3px; border-radius: 3px;
+  }
+  .fiche-texte u { text-decoration: underline; text-decoration-color: #e8321a; }
+  .fiche-exemple-txt { font-style: italic; color: #4a3a2a; }
+</style></head><body>
+${pages.map(renderPage).join("\n")}
+<script>window.onload=()=>setTimeout(()=>window.print(),300);</script>
+</body></html>`;
+
+  const win = window.open();
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
 
 function printTrace() {
   // Récupérer l'index de la semaine courante
